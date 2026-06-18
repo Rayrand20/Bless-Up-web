@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Bless Up · Admin Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{
+  --red:#C0392B;--yellow:#F1C40F;--green:#27AE60;
+  --red-light:#FDEDEC;--yellow-light:#FEFCE8;--green-light:#EAFAF1;
+  --text:#1a1a1a;--text-muted:#666;--border:#e5e5e5;
+  --white:#fff;--off:#F7F7F5;--sidebar:#1C1C1C;--r:12px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html{scroll-behavior:smooth;}
+body{font-family:'DM Sans',sans-serif;background:var(--off);color:var(--text);overflow-x:hidden;}
+
+/* ── REGGAE BAR ── */
+.rbar{height:4px;background:linear-gradient(90deg,var(--red) 33.3%,var(--yellow) 33.3% 66.6%,var(--green) 66.6%);position:fixed;top:0;left:0;right:0;z-index:999;}
+
+/* ── SCREENS ── */
+#setupScreen,#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem;}
+#adminLayout{display:none;}
+
+/* ── CARDS ── */
+.card{background:white;border-radius:16px;padding:2rem 1.5rem;max-width:440px;width:100%;border:1px solid var(--border);text-align:center;}
+.card .logo{font-family:'Fraunces',serif;font-size:2rem;font-weight:800;margin-bottom:0.2rem;}
+.card .sub{font-size:0.75rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--red);margin-bottom:1.25rem;}
+.card p{color:var(--text-muted);font-size:0.875rem;margin-bottom:1.25rem;line-height:1.5;}
+.strips{display:flex;justify-content:center;gap:4px;margin:0.75rem 0 1.25rem;}
+.strip{width:28px;height:4px;border-radius:2px;}
+
+/* ── SETUP FORM ── */
+.setup-step{display:none;}
+.setup-step.active{display:block;}
+.step-indicator{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:1.5rem;}
+.step-dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:var(--text-muted);transition:all 0.2s;}
+.step-dot.done{background:var(--green);border-color:var(--green);color:white;}
+.step-dot.active{background:var(--red);border-color:var(--red);color:white;}
+.step-line{flex:1;max-width:40px;height:2px;background:var(--border);border-radius:1px;}
+.step-line.done{background:var(--green);}
+
+.form-group{margin-bottom:0.9rem;text-align:left;}
+.form-group label{display:block;font-size:0.8rem;font-weight:600;margin-bottom:0.3rem;color:var(--text-muted);}
+.form-group input,.form-group select{width:100%;padding:0.7rem 0.85rem;border:1.5px solid var(--border);border-radius:10px;font-size:0.9rem;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;transition:border-color 0.2s;-webkit-appearance:none;min-height:48px;}
+.form-group input:focus,.form-group select:focus{border-color:var(--red);}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0.7rem 1.25rem;border-radius:10px;font-size:0.875rem;font-weight:600;cursor:pointer;border:none;transition:all 0.18s;font-family:'DM Sans',sans-serif;min-height:48px;white-space:nowrap;}
+.btn:active{transform:scale(0.97);}
+.btn-primary{background:var(--red);color:white;width:100%;}
+.btn-primary:hover{background:#a93226;}
+.btn-green{background:var(--green);color:white;width:100%;}
+.btn-green:hover{background:#1e8449;}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text);}
+.btn-outline:hover{border-color:var(--red);color:var(--red);}
+.btn-danger{background:var(--red-light);color:var(--red);border:1px solid #f5c6c2;}
+.btn-danger:hover{background:var(--red);color:white;}
+.btn-sm{padding:0.35rem 0.75rem;font-size:0.78rem;min-height:36px;border-radius:8px;}
+.btn-yellow{background:var(--yellow-light);color:#92660a;border:1px solid var(--yellow);}
+
+.alert{padding:0.75rem 1rem;border-radius:10px;font-size:0.85rem;margin-top:0.75rem;text-align:left;}
+.alert-red{background:var(--red-light);color:var(--red);border:1px solid #f5c6c2;}
+.alert-green{background:var(--green-light);color:var(--green);border:1px solid #a9dfbf;}
+.alert-yellow{background:var(--yellow-light);color:#92660a;border:1px solid var(--yellow);}
+
+/* ── LAYOUT ── */
+.layout{display:flex;min-height:100vh;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:220px;background:var(--sidebar);display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:100;transition:transform 0.3s ease;overflow-y:auto;}
+.sidebar.closed{transform:translateX(-100%);}
+.sidebar-header{padding:1.1rem 1.1rem 0.75rem;border-bottom:1px solid #2e2e2e;}
+.sidebar-logo{font-family:'Fraunces',serif;font-size:1.15rem;font-weight:800;color:white;}
+.sidebar-tag{font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--yellow);margin-top:2px;}
+.sidebar-strips{display:flex;gap:3px;margin-top:0.5rem;}
+.ss{height:3px;border-radius:2px;flex:1;}
+.sidebar-nav{padding:0.75rem 0;flex:1;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:0.7rem 1.1rem;color:#aaa;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.15s;border-left:3px solid transparent;user-select:none;}
+.nav-item:hover{color:white;background:rgba(255,255,255,0.05);}
+.nav-item.active{color:white;background:rgba(255,255,255,0.08);border-left-color:var(--red);}
+.nav-item .icon{font-size:1rem;width:20px;flex-shrink:0;}
+.sidebar-user{padding:0.9rem 1.1rem;border-top:1px solid #2e2e2e;display:flex;align-items:center;gap:8px;}
+.sidebar-user img{width:30px;height:30px;border-radius:50%;flex-shrink:0;}
+.su-name{font-size:0.78rem;font-weight:600;color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.su-role{font-size:0.68rem;font-weight:600;}
+.su-role.superadmin{color:var(--yellow);}
+.su-role.admin{color:#aaa;}
+.logout-btn{background:none;border:none;color:#aaa;cursor:pointer;font-size:1rem;padding:4px;flex-shrink:0;min-width:28px;min-height:28px;display:flex;align-items:center;justify-content:center;}
+.logout-btn:hover{color:white;}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;}
+.sidebar-overlay.show{display:block;}
+
+/* ── MAIN ── */
+.main{flex:1;margin-left:220px;display:flex;flex-direction:column;min-width:0;}
+.topbar{background:white;border-bottom:1px solid var(--border);height:56px;display:flex;align-items:center;padding:0 1.25rem;gap:0.75rem;position:sticky;top:0;z-index:50;}
+.topbar-hamburger{display:none;background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--text);min-width:44px;min-height:44px;align-items:center;justify-content:center;border-radius:8px;}
+.topbar-title{font-size:0.9rem;font-weight:700;flex:1;}
+.topbar-date{font-size:0.78rem;color:var(--text-muted);}
+.main-body{padding:1.25rem;overflow-y:auto;}
+
+/* ── PAGES ── */
+.page{display:none;}
+.page.active{display:block;}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;margin-bottom:1.25rem;flex-wrap:wrap;}
+.page-header h1{font-family:'Fraunces',serif;font-size:1.5rem;font-weight:800;}
+.page-header p{font-size:0.83rem;color:var(--text-muted);margin-top:0.2rem;}
+
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0.75rem;margin-bottom:1.25rem;}
+.stat-card{background:white;border-radius:var(--r);border:1px solid var(--border);padding:1rem;}
+.stat-label{font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:0.3rem;}
+.stat-val{font-size:1.6rem;font-weight:700;}
+.stat-sub{font-size:0.75rem;color:var(--text-muted);margin-top:2px;}
+.stat-card.green .stat-val{color:var(--green);}
+.stat-card.red .stat-val{color:var(--red);}
+.stat-card.yellow .stat-val{color:#b8870a;}
+
+/* ── TABLE CARD ── */
+.table-card{background:white;border-radius:var(--r);border:1px solid var(--border);overflow:hidden;margin-bottom:1.25rem;}
+.table-head{padding:0.9rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:0.5rem;flex-wrap:wrap;}
+.table-head h3{font-size:0.9rem;font-weight:700;}
+.search-bar{padding:0.5rem 0.85rem;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;min-width:160px;min-height:40px;}
+.search-bar:focus{border-color:var(--red);}
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table{width:100%;border-collapse:collapse;font-size:0.82rem;min-width:500px;}
+th{text-align:left;padding:0.55rem 0.9rem;background:var(--off);font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-muted);white-space:nowrap;}
+td{padding:0.7rem 0.9rem;border-top:1px solid var(--border);vertical-align:middle;}
+tr:hover td{background:#fafafa;}
+.badge{display:inline-block;padding:2px 9px;border-radius:10px;font-size:0.7rem;font-weight:700;text-transform:uppercase;white-space:nowrap;}
+.badge.new{background:#dbeafe;color:#1d4ed8;}
+.badge.preparing{background:var(--yellow-light);color:#92660a;}
+.badge.done{background:var(--green-light);color:var(--green);}
+.badge.cancelled{background:var(--red-light);color:var(--red);}
+.badge.pickup{background:var(--green-light);color:var(--green);}
+.badge.delivery{background:var(--red-light);color:var(--red);}
+.badge.superadmin{background:#fce7f3;color:#9d174d;}
+.badge.admin{background:var(--red-light);color:var(--red);}
+.badge.customer{background:var(--off);color:var(--text-muted);border:1px solid var(--border);}
+.status-sel{padding:4px 8px;border-radius:6px;border:1px solid var(--border);font-size:0.78rem;font-family:'DM Sans',sans-serif;cursor:pointer;outline:none;min-height:34px;}
+
+/* ── MENU FORM ── */
+.form-card{background:white;border-radius:var(--r);border:1px solid var(--border);padding:1.25rem;margin-bottom:1.25rem;}
+.form-card h3{font-size:0.9rem;font-weight:700;margin-bottom:0.9rem;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;}
+.form-group2 label{display:block;font-size:0.78rem;font-weight:600;margin-bottom:0.3rem;color:var(--text-muted);}
+.form-group2 input,.form-group2 select,.form-group2 textarea{width:100%;padding:0.6rem 0.8rem;border:1.5px solid var(--border);border-radius:9px;font-size:0.85rem;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;transition:border-color 0.2s;-webkit-appearance:none;}
+.form-group2 input:focus,.form-group2 select:focus,.form-group2 textarea:focus{border-color:var(--red);}
+.form-group2{margin-bottom:0.75rem;}
+
+/* ── ADMIN CARD ── */
+.admin-quota{background:var(--yellow-light);border:1px solid var(--yellow);border-radius:var(--r);padding:1rem 1.1rem;margin-bottom:1rem;font-size:0.875rem;color:#92660a;display:flex;align-items:center;gap:8px;}
+.admin-add-card{background:white;border-radius:var(--r);border:1px solid var(--border);padding:1.25rem;margin-bottom:1.25rem;}
+.admin-add-card h3{font-size:0.9rem;font-weight:700;margin-bottom:0.35rem;}
+.admin-add-card p{font-size:0.82rem;color:var(--text-muted);margin-bottom:0.9rem;}
+.add-admin-row{display:flex;gap:0.5rem;flex-wrap:wrap;}
+.add-admin-row input{flex:1;min-width:160px;padding:0.6rem 0.8rem;border:1.5px solid var(--border);border-radius:9px;font-size:0.85rem;font-family:'DM Sans',sans-serif;outline:none;min-height:44px;}
+.add-admin-row input:focus{border-color:var(--red);}
+.add-admin-row select{padding:0.6rem 0.7rem;border:1.5px solid var(--border);border-radius:9px;font-size:0.85rem;font-family:'DM Sans',sans-serif;outline:none;min-height:44px;-webkit-appearance:none;}
+.add-admin-row .btn{width:auto;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%);}
+  .sidebar.open{transform:translateX(0);}
+  .main{margin-left:0;}
+  .topbar-hamburger{display:flex;}
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .form-row{grid-template-columns:1fr;}
+}
+@media(max-width:480px){
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .card{padding:1.5rem 1.1rem;}
+  .main-body{padding:1rem;}
+}
+</style>
+</head>
+<body>
+<div class="rbar"></div>
+
+<!-- ══ SETUP SCREEN ══ -->
+<div id="setupScreen">
+  <div class="card">
+    <div class="logo">Bless Up 🍽️</div>
+    <div class="sub">First Time Setup</div>
+    <div class="strips">
+      <div class="strip" style="background:var(--red)"></div>
+      <div class="strip" style="background:var(--yellow)"></div>
+      <div class="strip" style="background:var(--green)"></div>
+    </div>
+
+    <div class="step-indicator">
+      <div class="step-dot active" id="dot1">1</div>
+      <div class="step-line" id="line1"></div>
+      <div class="step-dot" id="dot2">2</div>
+      <div class="step-line" id="line2"></div>
+      <div class="step-dot" id="dot3">3</div>
+    </div>
+
+    <!-- Step 1: Welcome -->
+    <div class="setup-step active" id="step1">
+      <p>Welcome! Since no admin has been set up yet, you'll configure Bless Up right now. This only happens once.</p>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1.25rem;">You can set up to <strong>3 admins</strong> total — including yourself as Super Admin.</p>
+      <button class="btn btn-primary" onclick="goStep(2)">Get started →</button>
+    </div>
+
+    <!-- Step 2: Set Super Admin -->
+    <div class="setup-step" id="step2">
+      <p style="margin-bottom:1rem;">First, sign in with the Google account that will be the <strong>Super Admin</strong>. This person has full control.</p>
+      <div id="setupGSignin" style="display:flex;justify-content:center;margin-bottom:1rem;"></div>
+      <div id="setupSignedIn" style="display:none;">
+        <div class="alert alert-green" id="setupUserInfo"></div>
+        <button class="btn btn-primary" style="margin-top:0.9rem;" onclick="goStep(3)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Add more admins (optional) -->
+    <div class="setup-step" id="step3">
+      <p style="margin-bottom:1rem;">You can add up to <strong>2 more admins</strong> now (optional). You can also do this later from the Administrators page.</p>
+      <div id="extraAdminsList" style="margin-bottom:0.9rem;"></div>
+      <div id="addExtraForm" style="display:none;margin-bottom:0.75rem;">
+        <div class="form-group"><label>Gmail address</label><input type="email" id="extraEmail" placeholder="name@gmail.com"></div>
+        <div class="form-group"><label>Role</label>
+          <select id="extraRole"><option value="admin">Admin</option><option value="superadmin">Super Admin</option></select>
+        </div>
+        <div style="display:flex;gap:0.5rem;">
+          <button class="btn btn-primary" style="flex:1;" onclick="addExtraAdmin()">Add</button>
+          <button class="btn btn-outline" style="width:auto;" onclick="cancelExtraAdmin()">Cancel</button>
+        </div>
+      </div>
+      <div id="addExtraBtnWrap">
+        <button class="btn btn-outline" style="width:100%;margin-bottom:0.75rem;" onclick="showAddExtraForm()">+ Add another admin</button>
+      </div>
+      <button class="btn btn-green" onclick="finishSetup()">Finish setup ✓</button>
+      <div id="setupError" class="alert alert-red" style="display:none;margin-top:0.75rem;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ LOGIN SCREEN ══ -->
+<div id="loginScreen" style="display:none;">
+  <div class="card">
+    <div class="logo">Bless Up 🍽️</div>
+    <div class="sub">Admin Portal</div>
+    <div class="strips">
+      <div class="strip" style="background:var(--red)"></div>
+      <div class="strip" style="background:var(--yellow)"></div>
+      <div class="strip" style="background:var(--green)"></div>
+    </div>
+    <p>Sign in with your Google account. You'll only get in if you've been set as an administrator.</p>
+    <div id="loginGSignin" style="display:flex;justify-content:center;"></div>
+    <div class="alert alert-red" id="notAdminMsg" style="display:none;">⛔ Your Google account doesn't have admin access. Contact the Super Admin to get added.</div>
+  </div>
+</div>
+
+<!-- ══ ADMIN LAYOUT ══ -->
+<div id="adminLayout">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+  <div class="layout">
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">Bless Up 🍽️</div>
+        <div class="sidebar-tag">Admin Portal</div>
+        <div class="sidebar-strips">
+          <div class="ss" style="background:var(--red)"></div>
+          <div class="ss" style="background:var(--yellow)"></div>
+          <div class="ss" style="background:var(--green)"></div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-item active" onclick="goTo('dashboard',this)"><span class="icon">📊</span> Dashboard</div>
+        <div class="nav-item" onclick="goTo('orders',this)"><span class="icon">📋</span> Orders</div>
+        <div class="nav-item" onclick="goTo('menu',this)"><span class="icon">🍽️</span> Menu Manager</div>
+        <div class="nav-item" onclick="goTo('users',this)"><span class="icon">👥</span> Customers</div>
+        <div class="nav-item" id="adminNavItem" style="display:none;" onclick="goTo('admins',this)"><span class="icon">🔐</span> Administrators</div>
+      </nav>
+      <div class="sidebar-user">
+        <img id="adminAvatar" src="" alt="">
+        <div style="flex:1;min-width:0;">
+          <div class="su-name" id="adminName">Admin</div>
+          <div class="su-role" id="adminRoleLabel">admin</div>
+        </div>
+        <button class="logout-btn" onclick="adminLogout()" title="Sign out">↩</button>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="topbar">
+        <button class="topbar-hamburger" onclick="openSidebar()" aria-label="Open menu">☰</button>
+        <span class="topbar-title" id="topBarTitle">Dashboard</span>
+        <span class="topbar-date" id="topBarDate"></span>
+      </div>
+      <div class="main-body">
+
+        <!-- DASHBOARD -->
+        <div class="page active" id="page-dashboard">
+          <div class="page-header">
+            <div><h1 id="dashGreeting">Good day 👋</h1><p>Here's what's happening at Bless Up today.</p></div>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card green"><div class="stat-label">Total Orders</div><div class="stat-val" id="statOrders">0</div><div class="stat-sub">All time</div></div>
+            <div class="stat-card yellow"><div class="stat-label">Pending</div><div class="stat-val" id="statPending">0</div><div class="stat-sub">Need attention</div></div>
+            <div class="stat-card"><div class="stat-label">Revenue</div><div class="stat-val" id="statRevenue">—</div><div class="stat-sub">GHS total</div></div>
+            <div class="stat-card red"><div class="stat-label">Menu Items</div><div class="stat-val" id="statItems">0</div><div class="stat-sub">Active items</div></div>
+          </div>
+          <div class="table-card">
+            <div class="table-head"><h3>Recent orders</h3></div>
+            <div class="tbl-wrap"><table><thead><tr><th>Customer</th><th>Items</th><th>Total</th><th>Type</th><th>Status</th></tr></thead><tbody id="recentBody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- ORDERS -->
+        <div class="page" id="page-orders">
+          <div class="page-header">
+            <div><h1>Orders</h1><p>Manage every customer order.</p></div>
+            <button class="btn btn-outline" style="width:auto;" onclick="loadOrders()">↻ Refresh</button>
+          </div>
+          <div class="table-card">
+            <div class="table-head">
+              <h3>All orders</h3>
+              <input class="search-bar" placeholder="Search…" oninput="filterOrders(this.value)">
+            </div>
+            <div class="tbl-wrap"><table><thead><tr><th>Customer</th><th>Email</th><th>Items</th><th>Total (GHS)</th><th>Type</th><th>Address/Note</th><th>Status</th><th>Time</th></tr></thead><tbody id="ordersBody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- MENU -->
+        <div class="page" id="page-menu">
+          <div class="page-header"><div><h1>Menu Manager</h1><p>Add, edit or remove menu items.</p></div></div>
+          <div class="form-card">
+            <h3>Add new item</h3>
+            <div class="form-row">
+              <div class="form-group2"><label>Item name</label><input type="text" id="newName" placeholder="e.g. Jollof Rice & Chicken"></div>
+              <div class="form-group2"><label>Category</label>
+                <select id="newCat"><option value="rice">Rice Dishes</option><option value="stew">Soups & Stews</option><option value="snacks">Snacks</option><option value="drinks">Drinks</option></select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group2"><label>Price (GHS)</label><input type="number" id="newPrice" placeholder="0" min="0"></div>
+              <div class="form-group2"><label>Emoji icon</label><input type="text" id="newEmoji" placeholder="🍛" maxlength="4"></div>
+            </div>
+            <div class="form-group2"><label>Description</label><textarea id="newDesc" rows="2" placeholder="Tell customers what this dish is…" style="resize:none;"></textarea></div>
+            <button class="btn btn-primary" style="width:auto;" onclick="addMenuItem()">+ Add to menu</button>
+          </div>
+          <div class="table-card">
+            <div class="table-head"><h3>Current menu</h3></div>
+            <div class="tbl-wrap"><table><thead><tr><th>Icon</th><th>Name</th><th>Category</th><th>Price (GHS)</th><th>Description</th><th>Action</th></tr></thead><tbody id="menuBody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- CUSTOMERS -->
+        <div class="page" id="page-users">
+          <div class="page-header"><div><h1>Customers</h1><p>Everyone who has placed an order.</p></div></div>
+          <div class="table-card">
+            <div class="table-head"><h3>All customers</h3><input class="search-bar" placeholder="Search…" oninput="filterUsers(this.value)"></div>
+            <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Orders</th><th>Total Spent (GHS)</th><th>Role</th></tr></thead><tbody id="usersBody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- ADMINISTRATORS -->
+        <div class="page" id="page-admins">
+          <div class="page-header"><div><h1>Administrators</h1><p>Control who can access this portal.</p></div></div>
+          <div class="admin-quota" id="adminQuota">👥 <span id="adminQuotaText"></span></div>
+          <div class="admin-add-card" id="adminAddCard">
+            <h3>Add administrator</h3>
+            <p>Enter the Gmail address of the person you want to give access to. Max 3 admins total.</p>
+            <div class="add-admin-row">
+              <input type="email" id="newAdminEmail" placeholder="name@gmail.com">
+              <select id="newAdminRole"><option value="admin">Admin</option><option value="superadmin">Super Admin</option></select>
+              <button class="btn btn-primary" onclick="addAdmin()">Grant access</button>
+            </div>
+            <div id="adminAddMsg" style="margin-top:0.6rem;"></div>
+            <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.6rem;"><strong>Admin</strong> — manages orders and menu. &nbsp;<strong>Super Admin</strong> — also manages other admins.</p>
+          </div>
+          <div class="table-card">
+            <div class="table-head"><h3>Admin accounts</h3></div>
+            <div class="tbl-wrap"><table><thead><tr><th>Email</th><th>Role</th><th>Added by</th><th>Action</th></tr></thead><tbody id="adminsBody"></tbody></table></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══ STORAGE HELPERS ══
+const getAdmins=()=>JSON.parse(localStorage.getItem('bu_admins')||'null');
+const setAdmins=v=>localStorage.setItem('bu_admins',JSON.stringify(v));
+const getOrders=()=>JSON.parse(localStorage.getItem('blessup_orders')||'[]');
+const setOrders=v=>localStorage.setItem('blessup_orders',JSON.stringify(v));
+const getMenu=()=>JSON.parse(localStorage.getItem('blessup_menu')||'null');
+const setMenu=v=>localStorage.setItem('blessup_menu',JSON.stringify(v));
+const MAX_ADMINS=3;
+
+let menuItems=getMenu()||[
+  {id:1,name:'Jollof Rice & Chicken',desc:'Party jollof, smoky and rich, with well-seasoned chicken.',price:65,category:'rice',emoji:'🍛'},
+  {id:2,name:'Waakye Special',desc:'Waakye with fried fish, egg, wele, and spaghetti.',price:55,category:'rice',emoji:'🍲'},
+  {id:3,name:'Fried Rice & Beef',desc:'Vegetable fried rice with juicy stir-fried beef cuts.',price:60,category:'rice',emoji:'🍚'},
+  {id:4,name:'Groundnut Soup',desc:'Rich homemade groundnut soup with fufu.',price:70,category:'stew',emoji:'🥘'},
+  {id:5,name:'Palm Nut Soup',desc:'Freshly prepared palm nut soup with tilapia and banku.',price:75,category:'stew',emoji:'🍜'},
+  {id:6,name:'Light Soup & Goat',desc:'Spicy light soup with tender goat meat and yam.',price:80,category:'stew',emoji:'🫕'},
+  {id:7,name:'Kelewele',desc:'Spiced fried plantain, crispy outside and soft inside.',price:20,category:'snacks',emoji:'🍌'},
+  {id:8,name:'Meat Pie',desc:'Flaky pastry with seasoned minced meat. Freshly baked.',price:18,category:'snacks',emoji:'🥧'},
+  {id:9,name:'Spring Roll (4 pcs)',desc:'Crispy rolls filled with mixed veg and chicken.',price:30,category:'snacks',emoji:'🥢'},
+  {id:10,name:'Sobolo (Bottle)',desc:'Cold homemade hibiscus drink with ginger.',price:15,category:'drinks',emoji:'🍹'},
+  {id:11,name:'Fresh Coconut Water',desc:'Natural, chilled coconut water.',price:20,category:'drinks',emoji:'🥥'},
+  {id:12,name:'Pineapple Drink',desc:'Freshly blended pineapple and ginger.',price:18,category:'drinks',emoji:'🍍'},
+];
+
+let currentAdmin=null;
+let setupSuperAdmin=null;
+let extraAdmins=[];
+let allOrders=[];
+let allUsers=[];
+
+// ══ BOOT ══
+window.onload=function(){
+  const admins=getAdmins();
+  if(!admins){
+    // First time — show setup
+    document.getElementById('setupScreen').style.display='flex';
+    document.getElementById('loginScreen').style.display='none';
+  } else {
+    document.getElementById('setupScreen').style.display='none';
+    document.getElementById('loginScreen').style.display='flex';
+  }
+  document.getElementById('topBarDate').textContent=new Date().toDateString();
+
+  google.accounts.id.initialize({client_id:'905213905600-f4m54tpo8vjpmd49h4hh0fie4gibis7i.apps.googleusercontent.com',callback:handleSetupSignIn,auto_select:false});
+  google.accounts.id.renderButton(document.getElementById('setupGSignin'),{theme:'outline',size:'large',shape:'rectangular',width:260});
+
+  google.accounts.id.initialize({client_id:'905213905600-f4m54tpo8vjpmd49h4hh0fie4gibis7i.apps.googleusercontent.com',callback:handleLoginSignIn,auto_select:false});
+  google.accounts.id.renderButton(document.getElementById('loginGSignin'),{theme:'outline',size:'large',shape:'rectangular',width:260});
+};
+
+// ══ SETUP FLOW ══
+function goStep(n){
+  [1,2,3].forEach(i=>{
+    document.getElementById('step'+i).classList.toggle('active',i===n);
+    const dot=document.getElementById('dot'+i);
+    dot.classList.toggle('active',i===n);
+    dot.classList.toggle('done',i<n);
+  });
+  if(n>1) document.getElementById('line1').classList.toggle('done',n>=2);
+  if(n>2) document.getElementById('line2').classList.toggle('done',n>=3);
+}
+
+window.handleSetupSignIn=function(response){
+  const p=JSON.parse(atob(response.credential.split('.')[1]));
+  setupSuperAdmin={name:p.name,email:p.email.toLowerCase(),picture:p.picture,role:'superadmin',addedBy:'setup'};
+  document.getElementById('setupUserInfo').textContent='✓ Signed in as '+p.name+' ('+p.email+')';
+  document.getElementById('setupSignedIn').style.display='block';
+};
+
+function showAddExtraForm(){
+  if(extraAdmins.length>=(MAX_ADMINS-1)){alert('You can only have '+MAX_ADMINS+' admins total (including yourself).');return;}
+  document.getElementById('addExtraForm').style.display='block';
+  document.getElementById('addExtraBtnWrap').style.display='none';
+}
+function cancelExtraAdmin(){
+  document.getElementById('addExtraForm').style.display='none';
+  document.getElementById('addExtraBtnWrap').style.display='block';
+  document.getElementById('extraEmail').value='';
+}
+function addExtraAdmin(){
+  const email=document.getElementById('extraEmail').value.trim().toLowerCase();
+  const role=document.getElementById('extraRole').value;
+  if(!email||!/\S+@\S+\.\S+/.test(email)){alert('Please enter a valid email.');return;}
+  if(email===setupSuperAdmin?.email){alert('That is already the Super Admin.');return;}
+  if(extraAdmins.find(a=>a.email===email)){alert('Already added.');return;}
+  if(extraAdmins.length>=(MAX_ADMINS-1)){alert('Maximum admins reached.');return;}
+  extraAdmins.push({email,role,addedBy:setupSuperAdmin?.email||'setup'});
+  renderExtraAdminsList();
+  cancelExtraAdmin();
+}
+function removeExtraAdmin(idx){extraAdmins.splice(idx,1);renderExtraAdminsList();}
+function renderExtraAdminsList(){
+  const el=document.getElementById('extraAdminsList');
+  const canAdd=extraAdmins.length<(MAX_ADMINS-1);
+  document.getElementById('addExtraBtnWrap').style.display=canAdd?'block':'none';
+  if(!extraAdmins.length){el.innerHTML='<p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.5rem;">No extra admins added yet.</p>';return;}
+  el.innerHTML=extraAdmins.map((a,i)=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--off);border-radius:8px;padding:0.55rem 0.75rem;margin-bottom:0.4rem;font-size:0.83rem;">
+      <span><strong>${a.email}</strong> <span class="badge ${a.role}">${a.role}</span></span>
+      <button class="btn btn-sm btn-danger" onclick="removeExtraAdmin(${i})">Remove</button>
+    </div>`).join('');
+}
+
+function finishSetup(){
+  if(!setupSuperAdmin){document.getElementById('setupError').textContent='Please sign in with Google first.';document.getElementById('setupError').style.display='block';return;}
+  const allAdmins=[setupSuperAdmin,...extraAdmins];
+  setAdmins(allAdmins);
+  // Auto login as the super admin who just set up
+  currentAdmin=setupSuperAdmin;
+  document.getElementById('setupScreen').style.display='none';
+  enterAdmin();
+}
+
+// ══ LOGIN ══
+window.handleLoginSignIn=function(response){
+  const p=JSON.parse(atob(response.credential.split('.')[1]));
+  const admins=getAdmins()||[];
+  const rec=admins.find(a=>a.email===p.email.toLowerCase());
+  if(!rec){document.getElementById('notAdminMsg').style.display='block';return;}
+  currentAdmin={name:p.name,email:p.email.toLowerCase(),picture:p.picture,role:rec.role};
+  document.getElementById('loginScreen').style.display='none';
+  enterAdmin();
+};
+
+function enterAdmin(){
+  document.getElementById('adminLayout').style.display='block';
+  document.getElementById('adminAvatar').src=currentAdmin.picture||'';
+  document.getElementById('adminName').textContent=currentAdmin.name?.split(' ')[0]||'Admin';
+  const rl=document.getElementById('adminRoleLabel');
+  rl.textContent=currentAdmin.role;
+  rl.className='su-role '+(currentAdmin.role==='superadmin'?'superadmin':'admin');
+  if(currentAdmin.role==='superadmin') document.getElementById('adminNavItem').style.display='flex';
+  document.getElementById('dashGreeting').textContent='Good day, '+( currentAdmin.name?.split(' ')[0]||'Admin')+' 👋';
+  loadDashboard();
+}
+
+function adminLogout(){
+  currentAdmin=null;
+  document.getElementById('adminLayout').style.display='none';
+  document.getElementById('notAdminMsg').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  google.accounts.id.renderButton(document.getElementById('loginGSignin'),{theme:'outline',size:'large',shape:'rectangular',width:260});
+}
+
+// ══ SIDEBAR ══
+function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('sidebarOverlay').classList.add('show');}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebarOverlay').classList.remove('show');}
+
+// ══ NAVIGATION ══
+function goTo(page,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  el.classList.add('active');
+  document.getElementById('topBarTitle').textContent=el.querySelector('.icon').nextSibling.textContent.trim();
+  closeSidebar();
+  if(page==='dashboard') loadDashboard();
+  if(page==='orders') loadOrders();
+  if(page==='menu') loadMenuTable();
+  if(page==='users') loadUsers();
+  if(page==='admins') loadAdmins();
+}
+
+// ══ DASHBOARD ══
+function loadDashboard(){
+  const orders=getOrders();
+  document.getElementById('statOrders').textContent=orders.length;
+  document.getElementById('statPending').textContent=orders.filter(o=>!o.status||o.status==='new').length;
+  document.getElementById('statRevenue').textContent='GHS '+orders.reduce((s,o)=>s+(o.total||0),0).toFixed(0);
+  document.getElementById('statItems').textContent=menuItems.length;
+  const recent=orders.slice(-6).reverse();
+  document.getElementById('recentBody').innerHTML=recent.length===0
+    ?'<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:1.25rem;">No orders yet.</td></tr>'
+    :recent.map(o=>`<tr>
+      <td style="font-weight:600">${o.user?.name||'Guest'}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.items?.map(i=>i.emoji+' '+i.name).join(', ')||'—'}</td>
+      <td style="font-weight:700;color:var(--green)">GHS ${o.total?.toFixed(2)||'0.00'}</td>
+      <td><span class="badge ${o.orderType||'pickup'}">${o.orderType||'pickup'}</span></td>
+      <td><span class="badge ${o.status||'new'}">${o.status||'New'}</span></td>
+    </tr>`).join('');
+}
+
+// ══ ORDERS ══
+function loadOrders(){allOrders=getOrders().reverse();renderOrdersTable(allOrders);}
+function filterOrders(q){renderOrdersTable(allOrders.filter(o=>!q||JSON.stringify(o).toLowerCase().includes(q.toLowerCase())));}
+function renderOrdersTable(orders){
+  document.getElementById('ordersBody').innerHTML=orders.length===0
+    ?'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:1.25rem;">No orders found.</td></tr>'
+    :orders.map((o,ri)=>{
+      const realIdx=getOrders().length-1-allOrders.indexOf(o);
+      return`<tr>
+        <td style="font-weight:600">${o.user?.name||'Guest'}</td>
+        <td style="font-size:0.78rem;color:var(--text-muted)">${o.user?.email||'—'}</td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.items?.map(i=>i.emoji+' '+i.name+' ×'+i.qty).join(', ')||'—'}</td>
+        <td style="font-weight:700;color:var(--green)">${o.total?.toFixed(2)||'0.00'}</td>
+        <td><span class="badge ${o.orderType||'pickup'}">${o.orderType||'pickup'}</span></td>
+        <td style="font-size:0.78rem;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.address||'—'}${o.note?' · '+o.note:''}</td>
+        <td><select class="status-sel" onchange="updateStatus(${allOrders.indexOf(o)},this.value)">
+          <option value="new" ${(!o.status||o.status==='new')?'selected':''}>New</option>
+          <option value="preparing" ${o.status==='preparing'?'selected':''}>Preparing</option>
+          <option value="done" ${o.status==='done'?'selected':''}>Done</option>
+          <option value="cancelled" ${o.status==='cancelled'?'selected':''}>Cancelled</option>
+        </select></td>
+        <td style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap;">${o.time?new Date(o.time).toLocaleString([],{dateStyle:'short',timeStyle:'short'}):'-'}</td>
+      </tr>`;
+    }).join('');
+}
+function updateStatus(listIdx,status){
+  const orders=getOrders();
+  const o=allOrders[listIdx];
+  const storedIdx=orders.findIndex(x=>x.time===o.time&&x.user?.email===o.user?.email);
+  if(storedIdx>=0){orders[storedIdx].status=status;setOrders(orders);allOrders[listIdx].status=status;}
+}
+
+// ══ MENU ══
+function loadMenuTable(){
+  document.getElementById('menuBody').innerHTML=menuItems.length===0
+    ?'<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:1.25rem;">No items yet.</td></tr>'
+    :menuItems.map((item,idx)=>`<tr>
+      <td style="font-size:1.4rem">${item.emoji}</td>
+      <td style="font-weight:600">${item.name}</td>
+      <td><span class="badge customer">${item.category}</span></td>
+      <td style="font-weight:700;color:var(--green)">${item.price}</td>
+      <td style="font-size:0.78rem;color:var(--text-muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.desc}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteMenuItem(${idx})">Remove</button></td>
+    </tr>`).join('');
+}
+function addMenuItem(){
+  const name=document.getElementById('newName').value.trim();
+  const price=parseFloat(document.getElementById('newPrice').value);
+  const cat=document.getElementById('newCat').value;
+  const emoji=document.getElementById('newEmoji').value.trim()||'🍽️';
+  const desc=document.getElementById('newDesc').value.trim();
+  if(!name||!price||!desc){alert('Please fill in name, price, and description.');return;}
+  menuItems.push({id:Date.now(),name,price,category:cat,emoji,desc});
+  setMenu(menuItems);loadMenuTable();
+  ['newName','newPrice','newEmoji','newDesc'].forEach(id=>document.getElementById(id).value='');
+}
+function deleteMenuItem(idx){
+  if(!confirm('Remove "'+menuItems[idx].name+'" from the menu?'))return;
+  menuItems.splice(idx,1);setMenu(menuItems);loadMenuTable();
+}
+
+// ══ USERS ══
+function loadUsers(){
+  const orders=getOrders();
+  const map={};
+  orders.forEach(o=>{if(!o.user?.email)return;if(!map[o.user.email])map[o.user.email]={...o.user,orders:0,total:0};map[o.user.email].orders++;map[o.user.email].total+=(o.total||0);});
+  allUsers=Object.values(map);renderUsersTable(allUsers);
+}
+function filterUsers(q){renderUsersTable(allUsers.filter(u=>!q||(u.name+u.email).toLowerCase().includes(q.toLowerCase())));}
+function renderUsersTable(users){
+  const admins=getAdmins()||[];
+  document.getElementById('usersBody').innerHTML=users.length===0
+    ?'<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:1.25rem;">No customers yet.</td></tr>'
+    :users.map(u=>{const isAdmin=admins.find(a=>a.email===u.email.toLowerCase());return`<tr>
+      <td style="font-weight:600">${u.name}</td>
+      <td style="font-size:0.8rem;color:var(--text-muted)">${u.email}</td>
+      <td>${u.orders}</td>
+      <td style="font-weight:700;color:var(--green)">${u.total.toFixed(2)}</td>
+      <td><span class="badge ${isAdmin?isAdmin.role:'customer'}">${isAdmin?isAdmin.role:'customer'}</span></td>
+    </tr>`;}).join('');
+}
+
+// ══ ADMINS ══
+function loadAdmins(){
+  const admins=getAdmins()||[];
+  const count=admins.length;
+  document.getElementById('adminQuotaText').textContent=count+' of '+MAX_ADMINS+' admin slots used.'+( count>=MAX_ADMINS?' Maximum reached — remove an admin to add a new one.':' '+(MAX_ADMINS-count)+' slot(s) remaining.');
+  document.getElementById('adminAddCard').style.display=count>=MAX_ADMINS?'none':'block';
+  document.getElementById('adminsBody').innerHTML=admins.map((a,idx)=>`<tr>
+    <td style="font-weight:600">${a.email}</td>
+    <td><span class="badge ${a.role}">${a.role}</span></td>
+    <td style="font-size:0.78rem;color:var(--text-muted)">${a.addedBy||'—'}</td>
+    <td>${(a.role!=='superadmin'||admins.filter(x=>x.role==='superadmin').length>1)
+      ?`<button class="btn btn-sm btn-danger" onclick="removeAdmin(${idx})">Remove</button>`
+      :'<span style="font-size:0.75rem;color:var(--text-muted)">Protected</span>'}</td>
+  </tr>`).join('');
+}
+function addAdmin(){
+  const admins=getAdmins()||[];
+  if(admins.length>=MAX_ADMINS){showMsg('adminAddMsg','Maximum of '+MAX_ADMINS+' admins reached.','red');return;}
+  const email=document.getElementById('newAdminEmail').value.trim().toLowerCase();
+  const role=document.getElementById('newAdminRole').value;
+  if(!email||!/\S+@\S+\.\S+/.test(email)){showMsg('adminAddMsg','Please enter a valid email address.','red');return;}
+  if(admins.find(a=>a.email===email)){showMsg('adminAddMsg','This email is already an admin.','red');return;}
+  admins.push({email,role,addedBy:currentAdmin?.email||'admin'});
+  setAdmins(admins);loadAdmins();
+  document.getElementById('newAdminEmail').value='';
+  showMsg('adminAddMsg','Admin added successfully.','green');
+}
+function removeAdmin(idx){
+  const admins=getAdmins()||[];
+  if(!confirm('Remove admin access for '+admins[idx].email+'?'))return;
+  admins.splice(idx,1);setAdmins(admins);loadAdmins();
+}
+function showMsg(id,text,type){
+  const el=document.getElementById(id);
+  el.className='alert alert-'+type;el.textContent=text;el.style.display='block';
+  setTimeout(()=>{el.style.display='none';},3500);
+}
+</script>
+</body>
+</html>
